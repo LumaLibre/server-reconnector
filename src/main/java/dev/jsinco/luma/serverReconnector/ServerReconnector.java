@@ -13,6 +13,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.slf4j.Logger;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 @Plugin(id = "server-reconnector", name = "server-reconnector", version = BuildConstants.VERSION, authors = {"Jsinco"})
 public class ServerReconnector {
 
+    private static final List<String> DONT_RECONNECT = List.of("lobby");
     private static final long GIVE_UP_DELAY = 300000L; // 5 minutes
     private static final ConcurrentHashMap<UUID, AwaitingReconnectPlayer> awaitingReconnectPlayers = new ConcurrentHashMap<>();
 
@@ -79,6 +81,9 @@ public class ServerReconnector {
 
     @Subscribe
     public void onPlayerKickedFromServer(KickedFromServerEvent event) {
+        if (DONT_RECONNECT.contains(event.getServer().getServerInfo().getName()) || awaitingReconnectPlayers.containsKey(event.getPlayer().getUniqueId())) {
+            return;
+        }
         proxy.getScheduler().buildTask(this, () -> {
             if (!event.getPlayer().isActive()) {
                 logger.info("Player {} was kicked from server {} but is no longer active.",
